@@ -1,7 +1,9 @@
  
 
 
-> Open this page at [https://brohann3214.github.io/arcade-brohann-3d/](https://brohann3214.github.io/arcade-brohann-3d/)
+> Download this extension [here](https://github.com/phattisu/arcade-polymesh/raw/refs/heads/master/arcade-polymesh.uf2)
+
+> Open this page at [https://phatisena.github.io/arcade-polymesh/](https://phatisena.github.io/arcade-polymesh/)
 
 ## Use as Extension
 
@@ -10,22 +12,15 @@ This repository can be added as an **extension** in MakeCode.
 * open [https://arcade.makecode.com/](https://arcade.makecode.com/)
 * click on **New Project**
 * click on **Extensions** under the gearwheel menu
-* search for **https://github.com/brohann3214/arcade-brohann-3d** and import
+* search for **https://github.com/phatisena/arcade-polymesh** and import
 
-## Edit this project ![Build status badge](https://github.com/brohann3214/arcade-brohann-3d/workflows/MakeCode/badge.svg)
+## Edit this project
 
 To edit this repository in MakeCode.
 
 * open [https://arcade.makecode.com/](https://arcade.makecode.com/)
 * click on **Import** then click on **Import URL**
-* paste **https://github.com/brohann3214/arcade-brohann-3d** and click import
-
-## Blocks preview
-
-This image shows the blocks code from the last commit in master.
-This image may take a few minutes to refresh.
-
-![A rendered view of the blocks](https://github.com/brohann3214/arcade-brohann-3d/raw/master/.github/makecode/blocks.png)
+* paste **https://github.com/phatisena/arcade-polymesh** and click import
 
 #### Metadata (used for search, rendering)
 

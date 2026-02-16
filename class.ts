@@ -1,156 +1,393 @@
 
-class polymesh {
+class polyview {
+    protected __prop_upd: control.FrameCallback; __del: boolean; protected __unDel: boolean;
 
-    protected __del: boolean;
+    public init() { }
 
-    protected faces_indices: Fx8[][]; protected faces_color: Fx8[]; protected faces_offset: Fx8[]; protected faces_scale: Fx8[]; protected faces_img: Image[];
-    set faces(vals: { indices: number[], color: number, offset?: number, scale?: number, img?: Image }[]) {
-        if (this.isDel()) return;
-        this.faces_indices = vals.map(vs => vs.indices.map(v => Fx8(v))), this.faces_color = vals.map(v => Fx8(v.color))
-        this.faces_offset = vals.map(v => v.offset ? Fx8(v.offset) : Fx8(0)), this.faces_scale = vals.map(v => v.scale ? Fx8(v.scale) : Fx8(1))
-        this.faces_img = vals.map(v => v.img ? v.img : null)
-    }
-    get faces() {
-        if (this.isDel()) return null
-        return this.faces_indices.map((_, i) => ({
-            indices: this.faces_indices[i].map(v => Fx.toFloat(v)), color: Fx.toInt(this.faces_color[i]),
-            offset: Fx.toInt(this.faces_offset[i]), scale: Fx.toFloat(this.faces_scale[i]), img: this.faces_img[i],
-        }))
+    public __onLoop() { }
+
+    loop() {
+        this.__prop_upd = control.eventContext().registerFrameHandler(scene.PRE_RENDER_UPDATE_PRIORITY, () => {
+            const delta = Fx8(control.eventContext().deltaTime)
+            this.motionUpdateRot(delta), this.motionUpdatePos(delta);
+            this.__onLoop();
+        });
     }
 
-    protected points_xs: Fx8[]; protected points_ys: Fx8[]; protected points_zs: Fx8[];
-    set points(vals: { x: number, y: number, z: number }[]) {
-        if (this.isDel()) return;
-        this.points_xs = vals.map(v => Fx8(v.x)), this.points_ys = vals.map(v => Fx8(v.y)), this.points_zs = vals.map(v => Fx8(v.z))
-    }
-    get points() {
-        if (this.isDel()) return null
-        return this.points_xs.map((_, i) => ({
-            x: Fx.toFloat(this.points_xs[i]),
-            y: Fx.toFloat(this.points_ys[i]),
-            z: Fx.toFloat(this.points_zs[i]),
-        }))
+    constructor(undel?: boolean) {
+        this.__unDel = undel;
+        this.__del = false;
+        this.rot = { x: 0, y: 0, z: 0, vx: 0, vy: 0, vz: 0, ax: 0, ay: 0, az: 0, fx: 0, fy: 0, fz: 0 };
+        this.pos = { x: 0, y: 0, z: 0, vx: 0, vy: 0, vz: 0, ax: 0, ay: 0, az: 0, fx: 0, fy: 0, fz: 0 };
+        this.init();
+        this.loop();
     }
 
-    protected pivot_x: Fx8; protected pivot_y: Fx8; protected pivot_z: Fx8;
-    set pivot(v: { x: number, y: number, z: number }) { if (this.isDel()) return; this.pivot_x = Fx8(v.x), this.pivot_y = Fx8(v.y), this.pivot_z = Fx8(v.z) }
-    get pivot() { if (this.isDel()) return null; return { x: Fx.toFloat(this.pivot_x), y: Fx.toFloat(this.pivot_y), z: Fx.toFloat(this.pivot_z) } }
+    isDel() {
+        return this.__del
+    }
 
-    protected rot_x: Fx8; protected rot_y: Fx8; protected rot_z: Fx8;
+    public __onDel() { }
+
+    del() {
+        if (this.__unDel) return;
+        this.__del = true; control.eventContext().unregisterFrameHandler(this.__prop_upd);
+        this.rot = null, this.pos = null;
+        this.__onDel();
+    }
+
+    protected rot_x:  Fx8; protected rot_y:  Fx8; protected rot_z:  Fx8;
     protected rot_vx: Fx8; protected rot_vy: Fx8; protected rot_vz: Fx8;
     protected rot_ax: Fx8; protected rot_ay: Fx8; protected rot_az: Fx8;
     protected rot_fx: Fx8; protected rot_fy: Fx8; protected rot_fz: Fx8;
-    set rot(v: {
-        x: number, y: number, z: number,
-        vx: number, vy: number, vz: number,
-        ax: number, ay: number, az: number,
-        fx: number, fy: number, fz: number
-    }) {
-        if (this.isDel()) return;
-        if (this.rot_x !== Fx8(v.x)) this.rot_x = Fx8(v.x);
-        if (this.rot_y !== Fx8(v.y)) this.rot_y = Fx8(v.y);
-        if (this.rot_z !== Fx8(v.z)) this.rot_z = Fx8(v.z);
-        if (this.rot_vx !== Fx8(v.vx)) this.rot_vx = Fx8(v.vx);
-        if (this.rot_vy !== Fx8(v.vy)) this.rot_vy = Fx8(v.vy);
-        if (this.rot_vz !== Fx8(v.vz)) this.rot_vz = Fx8(v.vz);
-        if (this.rot_ax !== Fx8(v.ax)) this.rot_ax = Fx8(v.ax);
-        if (this.rot_ay !== Fx8(v.ay)) this.rot_ay = Fx8(v.ay);
-        if (this.rot_az !== Fx8(v.az)) this.rot_az = Fx8(v.az);
-        if (this.rot_fx !== Fx8(v.fx)) this.rot_fx = Fx8(v.fx);
-        if (this.rot_fy !== Fx8(v.fy)) this.rot_fy = Fx8(v.fy);
-        if (this.rot_fz !== Fx8(v.fz)) this.rot_fz = Fx8(v.fz);
+    set rot(v: Polymesh.Motion3) {
+        if (!v || v == null) {
+            this.rot_x  = null; this.rot_y  = null; this.rot_z  = null;
+            this.rot_vx = null; this.rot_vy = null; this.rot_vz = null;
+            this.rot_ax = null; this.rot_ay = null; this.rot_az = null;
+            this.rot_fx = null; this.rot_fy = null; this.rot_fz = null;
+            return
+        }
+        this.rot_x  = Fx8(v.x);  this.rot_y  = Fx8(v.y);  this.rot_z  = Fx8(v.z);
+        this.rot_vx = Fx8(v.vx); this.rot_vy = Fx8(v.vy); this.rot_vz = Fx8(v.vz);
+        this.rot_ax = Fx8(v.vx); this.rot_ay = Fx8(v.vy); this.rot_az = Fx8(v.vz);
+        this.rot_fx = Fx8(v.vx); this.rot_fy = Fx8(v.vy); this.rot_fz = Fx8(v.vz);
     }
-    get rot() {
-        if (this.isDel()) return null
+    get rot(): Polymesh.Motion3 {
         return {
-            x: Fx.toFloat(this.rot_x), y: Fx.toFloat(this.rot_y), z: Fx.toFloat(this.rot_z),
+            x:  Fx.toFloat(this.rot_x),  y:  Fx.toFloat(this.rot_y),  z:  Fx.toFloat(this.rot_z),
             vx: Fx.toFloat(this.rot_vx), vy: Fx.toFloat(this.rot_vy), vz: Fx.toFloat(this.rot_vz),
             ax: Fx.toFloat(this.rot_ax), ay: Fx.toFloat(this.rot_ay), az: Fx.toFloat(this.rot_az),
             fx: Fx.toFloat(this.rot_fx), fy: Fx.toFloat(this.rot_fy), fz: Fx.toFloat(this.rot_fz),
         }
     }
 
-    protected pos_x: Fx8; protected pos_y: Fx8; protected pos_z: Fx8;
+    protected pos_x:  Fx8; protected pos_y:  Fx8; protected pos_z:  Fx8;
     protected pos_vx: Fx8; protected pos_vy: Fx8; protected pos_vz: Fx8;
     protected pos_ax: Fx8; protected pos_ay: Fx8; protected pos_az: Fx8;
     protected pos_fx: Fx8; protected pos_fy: Fx8; protected pos_fz: Fx8;
-    set pos(v: {
-        x: number, y: number, z: number,
-        vx: number, vy: number, vz: number,
-        ax: number, ay: number, az: number,
-        fx: number, fy: number, fz: number
-    }) {
-        if (this.isDel()) return;
-        if (this.pos_x !== Fx8(v.x)) this.pos_x = Fx8(v.x);
-        if (this.pos_y !== Fx8(v.y)) this.pos_y = Fx8(v.y);
-        if (this.pos_z !== Fx8(v.z)) this.pos_z = Fx8(v.z);
-        if (this.pos_vx !== Fx8(v.vx)) this.pos_vx = Fx8(v.vx);
-        if (this.pos_vy !== Fx8(v.vy)) this.pos_vy = Fx8(v.vy);
-        if (this.pos_vz !== Fx8(v.vz)) this.pos_vz = Fx8(v.vz);
-        if (this.pos_ax !== Fx8(v.ax)) this.pos_ax = Fx8(v.ax);
-        if (this.pos_ay !== Fx8(v.ay)) this.pos_ay = Fx8(v.ay);
-        if (this.pos_az !== Fx8(v.az)) this.pos_az = Fx8(v.az);
-        if (this.pos_fx !== Fx8(v.fx)) this.pos_fx = Fx8(v.fx);
-        if (this.pos_fy !== Fx8(v.fy)) this.pos_fy = Fx8(v.fy);
-        if (this.pos_fz !== Fx8(v.fz)) this.pos_fz = Fx8(v.fz);
+    set pos(v: Polymesh.Motion3) {
+        if (!v || v == null) {
+            this.pos_x  = null; this.pos_y  = null; this.pos_z  = null;
+            this.pos_vx = null; this.pos_vy = null; this.pos_vz = null;
+            this.pos_ax = null; this.pos_ay = null; this.pos_az = null;
+            this.pos_fx = null; this.pos_fy = null; this.pos_fz = null;
+            return
+        }
+        this.pos_x  = Fx8(v.x);  this.pos_y  = Fx8(v.y);  this.pos_z  = Fx8(v.z);
+        this.pos_vx = Fx8(v.vx); this.pos_vy = Fx8(v.vy); this.pos_vz = Fx8(v.vz);
+        this.pos_ax = Fx8(v.vx); this.pos_ay = Fx8(v.vy); this.pos_az = Fx8(v.vz);
+        this.pos_fx = Fx8(v.vx); this.pos_fy = Fx8(v.vy); this.pos_fz = Fx8(v.vz);
     }
-    get pos() {
-        if (this.isDel()) return null
+    get pos(): Polymesh.Motion3 {
         return {
-            x: Fx.toFloat(this.pos_x), y: Fx.toFloat(this.pos_y), z: Fx.toFloat(this.pos_z),
+            x:  Fx.toFloat(this.pos_x),  y:  Fx.toFloat(this.pos_y),  z:  Fx.toFloat(this.pos_z),
             vx: Fx.toFloat(this.pos_vx), vy: Fx.toFloat(this.pos_vy), vz: Fx.toFloat(this.pos_vz),
             ax: Fx.toFloat(this.pos_ax), ay: Fx.toFloat(this.pos_ay), az: Fx.toFloat(this.pos_az),
             fx: Fx.toFloat(this.pos_fx), fy: Fx.toFloat(this.pos_fy), fz: Fx.toFloat(this.pos_fz),
         }
     }
 
-    flag: { invisible: boolean, noncull: boolean, lod: boolean }
-    __home__() {
-        forever(() => {
-            if (this.isDel()) return;
-            const delta = Fx8(control.eventContext().deltaTime)
+    protected motionUpdatePos(delta: Fx8) {
+        const zeroF = Fx8(0), oneF = Fx8(1)
+        // Acceleration of position
+        if (this.pos_ax !== zeroF) this.pos_vx = Fx.add(this.pos_vx, Fx.mul(this.pos_ax, delta))
+        if (this.pos_ay !== zeroF) this.pos_vy = Fx.add(this.pos_vy, Fx.mul(this.pos_ay, delta))
+        if (this.pos_az !== zeroF) this.pos_vz = Fx.add(this.pos_vz, Fx.mul(this.pos_az, delta))
 
-            // Acceleration angle of this mesh
-            if (this.rot_ax !== Fx8(0)) this.rot_vx = Fx.add(this.rot_vx, Fx.mul(this.rot_ax, delta))
-            if (this.rot_ay !== Fx8(0)) this.rot_vy = Fx.add(this.rot_vy, Fx.mul(this.rot_ay, delta))
-            if (this.rot_az !== Fx8(0)) this.rot_vz = Fx.add(this.rot_vz, Fx.mul(this.rot_az, delta))
+        // Friction of position
+        if (this.pos_fx !== zeroF) this.pos_vx = Fx.mul(this.pos_vx, Fx.mul(Fx.sub(oneF, this.pos_fx), delta))
+        if (this.pos_fy !== zeroF) this.pos_vy = Fx.mul(this.pos_vy, Fx.mul(Fx.sub(oneF, this.pos_fy), delta))
+        if (this.pos_fz !== zeroF) this.pos_vz = Fx.mul(this.pos_vz, Fx.mul(Fx.sub(oneF, this.pos_fz), delta))
 
-            // Friction angle of this mesh
-            if (this.rot_fx !== Fx8(0)) this.rot_vx = this.rot_vx < Fx8(0) ? Fx.min(Fx.add(this.rot_vx, Fx.mul(Fx.abs(this.rot_fx), delta)), Fx8(0)) : Fx.max(Fx.sub(this.rot_vx, Fx.mul(Fx.abs(this.rot_fx), delta)), Fx8(0))
-            if (this.rot_fy !== Fx8(0)) this.rot_vy = this.rot_vy < Fx8(0) ? Fx.min(Fx.add(this.rot_vy, Fx.mul(Fx.abs(this.rot_fy), delta)), Fx8(0)) : Fx.max(Fx.sub(this.rot_vy, Fx.mul(Fx.abs(this.rot_fy), delta)), Fx8(0))
-            if (this.rot_fz !== Fx8(0)) this.rot_vz = this.rot_vz < Fx8(0) ? Fx.min(Fx.add(this.rot_vz, Fx.mul(Fx.abs(this.rot_fz), delta)), Fx8(0)) : Fx.max(Fx.sub(this.rot_vz, Fx.mul(Fx.abs(this.rot_fz), delta)), Fx8(0))
+        // Velocity of position
+        if (this.pos_vx !== zeroF) this.pos_x = Fx.add(this.pos_x, Fx.mul(this.pos_vx, delta))
+        if (this.pos_vy !== zeroF) this.pos_y = Fx.add(this.pos_y, Fx.mul(this.pos_vy, delta))
+        if (this.pos_vz !== zeroF) this.pos_z = Fx.add(this.pos_z, Fx.mul(this.pos_vz, delta))
+    }
+    protected motionUpdateRot(delta: Fx8) {
+        const zeroF = Fx8(0), oneF = Fx8(1)
+        // Acceleration of rotation
+        if (this.rot_ax !== zeroF) this.rot_vx = Fx.add(this.rot_vx, Fx.mul(this.rot_ax, delta))
+        if (this.rot_ay !== zeroF) this.rot_vy = Fx.add(this.rot_vy, Fx.mul(this.rot_ay, delta))
+        if (this.rot_az !== zeroF) this.rot_vz = Fx.add(this.rot_vz, Fx.mul(this.rot_az, delta))
 
-            // Velocity angle of this mesh
-            if (this.rot_vx !== Fx8(0)) this.rot_x = Fx.add(this.rot_x, Fx.mul(this.rot_vx, delta));
-            if (this.rot_vy !== Fx8(0)) this.rot_y = Fx.add(this.rot_y, Fx.mul(this.rot_vy, delta));
-            if (this.rot_vz !== Fx8(0)) this.rot_z = Fx.add(this.rot_z, Fx.mul(this.rot_vz, delta));
+        // Friction of rotation
+        if (this.rot_fx !== zeroF) this.rot_vx = Fx.mul(this.rot_vx, Fx.mul(Fx.sub(oneF, this.rot_fx), delta))
+        if (this.rot_fy !== zeroF) this.rot_vy = Fx.mul(this.rot_vy, Fx.mul(Fx.sub(oneF, this.rot_fy), delta))
+        if (this.rot_fz !== zeroF) this.rot_vz = Fx.mul(this.rot_vz, Fx.mul(Fx.sub(oneF, this.rot_fz), delta))
 
-            // Acceleration position of this mesh
-            if (this.pos_ax !== Fx8(0)) this.pos_vx = Fx.add(this.pos_vx, Fx.mul(this.pos_ax, delta))
-            if (this.pos_ay !== Fx8(0)) this.pos_vy = Fx.add(this.pos_vy, Fx.mul(this.pos_ay, delta))
-            if (this.pos_az !== Fx8(0)) this.pos_vz = Fx.add(this.pos_vz, Fx.mul(this.pos_az, delta))
+        // Velocity of rotation
+        if (this.rot_vx !== zeroF) this.rot_x = Fx.add(this.rot_x, Fx.mul(this.rot_vx, delta))
+        if (this.rot_vy !== zeroF) this.rot_y = Fx.add(this.rot_y, Fx.mul(this.rot_vy, delta))
+        if (this.rot_vz !== zeroF) this.rot_z = Fx.add(this.rot_z, Fx.mul(this.rot_vz, delta))
+    }
 
-            // Friction position of this mesh
-            if (this.pos_fx !== Fx8(0)) this.pos_vx = this.pos_vx < Fx8(0) ? Fx.min(Fx.add(this.pos_vx, Fx.mul(Fx.abs(this.pos_fx), delta)), Fx8(0)) : Fx.max(Fx.sub(this.pos_vx, Fx.mul(Fx.abs(this.pos_fx), delta)), Fx8(0))
-            if (this.pos_fy !== Fx8(0)) this.pos_vy = this.pos_vy < Fx8(0) ? Fx.min(Fx.add(this.pos_vy, Fx.mul(Fx.abs(this.pos_fy), delta)), Fx8(0)) : Fx.max(Fx.sub(this.pos_vy, Fx.mul(Fx.abs(this.pos_fy), delta)), Fx8(0))
-            if (this.pos_fz !== Fx8(0)) this.pos_vz = this.pos_vz < Fx8(0) ? Fx.min(Fx.add(this.pos_vz, Fx.mul(Fx.abs(this.pos_fz), delta)), Fx8(0)) : Fx.max(Fx.sub(this.pos_vz, Fx.mul(Fx.abs(this.pos_fz), delta)), Fx8(0))
+    setAngle(choice: number, x: number) {
+        if (this.isDel()) return
+        const xF = Fx8(x)
+        switch (choice) {
+            case 0x0: if (this.rot_x  !== xF) this.rot_x  = xF; break
+            case 0x1: if (this.rot_y  !== xF) this.rot_y  = xF; break
+            case 0x2: if (this.rot_z  !== xF) this.rot_z  = xF; break
+            case 0x3: if (this.rot_vx !== xF) this.rot_vx = xF; break
+            case 0x4: if (this.rot_vy !== xF) this.rot_vy = xF; break
+            case 0x5: if (this.rot_vz !== xF) this.rot_vz = xF; break
+            case 0x6: if (this.rot_ax !== xF) this.rot_ax = xF; break
+            case 0x7: if (this.rot_ay !== xF) this.rot_ay = xF; break
+            case 0x8: if (this.rot_az !== xF) this.rot_az = xF; break
+            case 0x9: if (this.rot_fx !== xF) this.rot_fx = xF; break
+            case 0xA: if (this.rot_fy !== xF) this.rot_fy = xF; break
+            case 0xB: if (this.rot_fz !== xF) this.rot_fz = xF; break
+        }
+    }
+    changeAngle(choice: number, x: number) {
+        if (this.isDel()) return
+        const xF = Fx8(x)
+        switch (choice) {
+            case 0x0: if (this.rot_x  !== Fx.add(this.rot_x,  xF)) this.rot_x  = Fx.add(this.rot_x,  xF); break
+            case 0x1: if (this.rot_y  !== Fx.add(this.rot_y,  xF)) this.rot_y  = Fx.add(this.rot_y,  xF); break
+            case 0x2: if (this.rot_z  !== Fx.add(this.rot_z,  xF)) this.rot_z  = Fx.add(this.rot_z,  xF); break
+            case 0x3: if (this.rot_vx !== Fx.add(this.rot_vx, xF)) this.rot_vx = Fx.add(this.rot_vx, xF); break
+            case 0x4: if (this.rot_vy !== Fx.add(this.rot_vy, xF)) this.rot_vy = Fx.add(this.rot_vy, xF); break
+            case 0x5: if (this.rot_vz !== Fx.add(this.rot_vz, xF)) this.rot_vz = Fx.add(this.rot_vz, xF); break
+            case 0x6: if (this.rot_ax !== Fx.add(this.rot_ax, xF)) this.rot_ax = Fx.add(this.rot_ax, xF); break
+            case 0x7: if (this.rot_ay !== Fx.add(this.rot_ay, xF)) this.rot_ay = Fx.add(this.rot_ay, xF); break
+            case 0x8: if (this.rot_az !== Fx.add(this.rot_az, xF)) this.rot_az = Fx.add(this.rot_az, xF); break
+            case 0x9: if (this.rot_fx !== Fx.add(this.rot_fx, xF)) this.rot_fx = Fx.add(this.rot_fx, xF); break
+            case 0xA: if (this.rot_fy !== Fx.add(this.rot_fy, xF)) this.rot_fy = Fx.add(this.rot_fy, xF); break
+            case 0xB: if (this.rot_fz !== Fx.add(this.rot_fz, xF)) this.rot_fz = Fx.add(this.rot_fz, xF); break
+        }
+    }
+    getAngle(choice: number) {
+        if (this.isDel()) return NaN
+        switch (choice) {
+            case 0x0: return Fx.toFloat(this.rot_x);
+            case 0x1: return Fx.toFloat(this.rot_y);
+            case 0x2: return Fx.toFloat(this.rot_z);
+            case 0x3: return Fx.toFloat(this.rot_vx);
+            case 0x4: return Fx.toFloat(this.rot_vy);
+            case 0x5: return Fx.toFloat(this.rot_vz);
+            case 0x6: return Fx.toFloat(this.rot_ax);
+            case 0x7: return Fx.toFloat(this.rot_ay);
+            case 0x8: return Fx.toFloat(this.rot_az);
+            case 0x9: return Fx.toFloat(this.rot_fx);
+            case 0xA: return Fx.toFloat(this.rot_fy);
+            case 0xB: return Fx.toFloat(this.rot_fz);
+        } return NaN
+    }
 
-            // Velocity position of this mesh
-            if (this.pos_vx !== Fx8(0)) this.pos_x = Fx.add(this.pos_x, Fx.mul(this.pos_vx, delta));
-            if (this.pos_vy !== Fx8(0)) this.pos_y = Fx.add(this.pos_y, Fx.mul(this.pos_vy, delta));
-            if (this.pos_vz !== Fx8(0)) this.pos_z = Fx.add(this.pos_z, Fx.mul(this.pos_vz, delta));
+    setPos(choice: number, x: number) {
+        if (this.isDel()) return
+        const xF = Fx8(x)
+        switch (choice) {
+            case 0x0: if (this.pos_x  !== xF) this.pos_x  = xF; break
+            case 0x1: if (this.pos_y  !== xF) this.pos_y  = xF; break
+            case 0x2: if (this.pos_z  !== xF) this.pos_z  = xF; break
+            case 0x3: if (this.pos_vx !== xF) this.pos_vx = xF; break
+            case 0x4: if (this.pos_vy !== xF) this.pos_vy = xF; break
+            case 0x5: if (this.pos_vz !== xF) this.pos_vz = xF; break
+            case 0x6: if (this.pos_ax !== xF) this.pos_ax = xF; break
+            case 0x7: if (this.pos_ay !== xF) this.pos_ay = xF; break
+            case 0x8: if (this.pos_az !== xF) this.pos_az = xF; break
+            case 0x9: if (this.pos_fx !== xF) this.pos_fx = xF; break
+            case 0xA: if (this.pos_fy !== xF) this.pos_fy = xF; break
+            case 0xB: if (this.pos_fz !== xF) this.pos_fz = xF; break
+        }
+    }
+    changePos(choice: number, x: number) {
+        if (this.isDel()) return
+        const xF = Fx8(x)
+        switch (choice) {
+            case 0x0: if (this.pos_x  !== Fx.add(this.pos_x,  xF)) this.pos_x  = Fx.add(this.pos_x,  xF); break
+            case 0x1: if (this.pos_y  !== Fx.add(this.pos_y,  xF)) this.pos_y  = Fx.add(this.pos_y,  xF); break
+            case 0x2: if (this.pos_z  !== Fx.add(this.pos_z,  xF)) this.pos_z  = Fx.add(this.pos_z,  xF); break
+            case 0x3: if (this.pos_vx !== Fx.add(this.pos_vx, xF)) this.pos_vx = Fx.add(this.pos_vx, xF); break
+            case 0x4: if (this.pos_vy !== Fx.add(this.pos_vy, xF)) this.pos_vy = Fx.add(this.pos_vy, xF); break
+            case 0x5: if (this.pos_vz !== Fx.add(this.pos_vz, xF)) this.pos_vz = Fx.add(this.pos_vz, xF); break
+            case 0x6: if (this.pos_ax !== Fx.add(this.pos_ax, xF)) this.pos_ax = Fx.add(this.pos_ax, xF); break
+            case 0x7: if (this.pos_ay !== Fx.add(this.pos_ay, xF)) this.pos_ay = Fx.add(this.pos_ay, xF); break
+            case 0x8: if (this.pos_az !== Fx.add(this.pos_az, xF)) this.pos_az = Fx.add(this.pos_az, xF); break
+            case 0x9: if (this.pos_fx !== Fx.add(this.pos_fx, xF)) this.pos_fx = Fx.add(this.pos_fx, xF); break
+            case 0xA: if (this.pos_fy !== Fx.add(this.pos_fy, xF)) this.pos_fy = Fx.add(this.pos_fy, xF); break
+            case 0xB: if (this.pos_fz !== Fx.add(this.pos_fz, xF)) this.pos_fz = Fx.add(this.pos_fz, xF); break
+        }
+    }
+    getPos(choice: number) {
+        if (this.isDel()) return NaN
+        switch (choice) {
+            case 0x0: return Fx.toFloat(this.pos_x);
+            case 0x1: return Fx.toFloat(this.pos_y);
+            case 0x2: return Fx.toFloat(this.pos_z);
+            case 0x3: return Fx.toFloat(this.pos_vx);
+            case 0x4: return Fx.toFloat(this.pos_vy);
+            case 0x5: return Fx.toFloat(this.pos_vz);
+            case 0x6: return Fx.toFloat(this.pos_ax);
+            case 0x7: return Fx.toFloat(this.pos_ay);
+            case 0x8: return Fx.toFloat(this.pos_az);
+            case 0x9: return Fx.toFloat(this.pos_fx);
+            case 0xA: return Fx.toFloat(this.pos_fy);
+            case 0xB: return Fx.toFloat(this.pos_fz);
+        } return NaN
+    }
+
+}
+
+class polymesh extends polyview {
+
+    faces: Polymesh.Face[]; points: Polymesh.Vector3[]; pivot: Polymesh.Vector3;
+    flag: { invisible: boolean, cull: boolean, lod: boolean, texStream: boolean };
+    data: {[id: string]: any}; kind: number; idx: number;
+
+    //% blockId=poly_kind_set
+    //% blockNamespace=Polymesh
+    //% block=" $this set kind to $id"
+    //% this.shadow=variables_get this.defl=myMesh
+    //% id.shadow=poly_kind_shadow
+    //% group="mesh kind"
+    //% weight=11
+    setKind(id: number) {
+        if (this.kind === Math.floor(id)) return;
+        Polymesh.__meshes_upd_kind(this, id)
+    }
+
+    //% blockId=poly_kind_get
+    //% blockNamespace=Polymesh
+    //% block=" $this get kind"
+    //% this.shadow=variables_get this.defl=myMesh
+    //% group="mesh kind"
+    //% weight=9
+    getKind() {
+        return Math.floor(this.kind);
+    }
+
+    protected makeFaceImgStack(idx: number, img: Image) {
+        this.faces_imgs_cache_stack[idx].unshift(img);
+        if (this.faces_imgs_cache_stack[idx].length > 8) {
+            const oldImg = this.faces_imgs_cache_stack[idx].pop();
+            const oldImgh = Polymesh.hashImage(oldImg);
+            delete this.faces_imgs[idx][oldImgh]
+        }
+    }
+
+    protected createFacesImgLODcache() {
+        this.faces_imgs = this.faces.map(_ => ({}))
+        this.faces_imgs_cache_stack = this.faces.map(_ => ([]))
+    }
+
+    protected resetFacesImgLODcache(idx: number) {
+        this.faces_imgs[idx] = {}
+        this.faces_imgs_cache_stack[idx] = []
+    }
+
+    protected updImgLodCache() {
+        if (!this.flag.texStream) return;
+        const imgNewData = this.faces_imgs.filter((v, i) => {
+            const cimg = this.faces[i].img
+            if (!cimg) return false;
+            this.makeFaceImgStack(i, cimg)
+            const imgh = Polymesh.hashImage(cimg)
+            return !v[imgh];
+        })
+        if (imgNewData.length <= 0) return;
+        const imgNewDataInds = imgNewData.map((_, i) => i)
+        while (imgNewDataInds.length > 0) {
+            const idx = imgNewDataInds.pop()
+            this.updFaceImg(idx)
+        };
+    }
+
+    protected updImgLodCacheSlot() {
+        if (!this.flag.texStream) return;
+        if (this.faces_imgs.length === this.faces.length) return;
+        if (this.faces.length > this.faces_imgs.length) {
+            while (this.faces.length > this.faces_imgs.length) {
+                this.faces_imgs.push({})
+            }
+        } else if (this.faces.length < this.faces_imgs.length) {
+            while (this.faces.length < this.faces_imgs.length) {
+                this.faces_imgs.pop()
+            }
+        }
+        /*
+        const newLODcache = this.faces.map((v, i) => {
+            if (!v.img) return {};
+            if (this.faces_imgs[i]) return this.faces_imgs[i];
+            return {};
+        });
+        this.faces_imgs = newLODcache
+        */
+    }
+
+    protected updFaceImg(idx: number, im?: Image) {
+        const cimg = im ? im : (this.faces[idx].img ? this.faces[idx].img : null);
+        if (!cimg) return;
+        const square = Polymesh.gcd(cimg.width, cimg.height)
+        const imgh = Polymesh.hashImage(cimg)
+        if (!this.faces_imgs[idx]) this.faces_imgs[idx] = {}
+        else if (this.faces_imgs[idx][imgh] && this.faces_imgs[idx][imgh][this.faces_imgs[idx][imgh].length - 1].equals(cimg)) return;
+        this.faces_imgs[idx][imgh] = [];
+        if (Polymesh.isEmptyImage(cimg)) {
+            this.faces_imgs[idx][imgh].push(image.create(cimg.width, cimg.height));
+            return;
+        }
+        let img = image.create(1, 1), scale = 0.2;
+        while (img.width < cimg.width || img.height < cimg.height) {
+            Polymesh.resizeImage(cimg.clone(), img, true);
+            this.faces_imgs[idx][imgh].push(img.clone());
+            const scaleD = scale;
+            img = image.create(Math.max(1, Math.trunc(scaleD * cimg.width)), Math.max(1, Math.trunc(scaleD * cimg.height)));
+            scale *= square * (scale * 7.95);
+        } this.faces_imgs[idx][imgh].push(cimg.clone());
+    }
+
+    protected faces_imgs: {[imgh: string]: Image[]}[]; protected faces_imgs_cache_stack: Image[][];
+    get vfaces(): Polymesh.FaceLOD[] {
+        if (this.isDel()) return null
+        return this.faces.map((v, i) => {
+            if (v.img) return {
+                    indices: v.indices, color: v.color,
+                    offset: v.offset, scale: v.scale,
+                    img: v.img, imgs: this.faces_imgs[i][Polymesh.hashImage(v.img)] ? this.faces_imgs[i][Polymesh.hashImage(v.img)] : [v.img]
+                };
+            return {
+                indices: v.indices, color: v.color,
+                offset: v.offset, scale: v.scale
+            }
         })
     }
 
-    constructor() {
+    pointCam<T>(f: (v: Polymesh.Vector3) => T|Polymesh.Vector3) {
+        return this.points.map(v => {
+            const vpoint = { x: this.pos.x + v.x, y: this.pos.y + v.y, z: this.pos.z + v.z };
+            const vpivot = { x: this.pos.x + this.pivot.x, y: this.pos.y + this.pivot.y, z: this.pos.z + this.pivot.z };
+            return f(Polymesh.rotatePoint3Dxyz(vpoint, vpivot, this.rot));
+        })
+    };
+
+    __onLoop() {
+        this.updImgLodCacheSlot();
+        this.updImgLodCache();
+    }
+
+    init() {
+        this.data = {};
         this.faces = [];
         this.points = [];
         this.pivot = { x: 0, y: 0, z: 0 };
-        this.rot = { x: 0, y: 0, z: 0, vx: 0, vy: 0, vz: 0, ax: 0, ay: 0, az: 0, fx: 0, fy: 0, fz: 0 };
-        this.pos = { x: 0, y: 0, z: 0, vx: 0, vy: 0, vz: 0, ax: 0, ay: 0, az: 0, fx: 0, fy: 0, fz: 0 };
-        this.flag = { invisible: false, noncull: false, lod: false };
-        this.__del = false;
-        this.__home__();
+        this.flag = { invisible: false, cull: false, lod: false, texStream: false };
+        this.createFacesImgLODcache();
+    }
+
+    constructor(kind: number, idx: number) {
+        super();
+        this.kind = (kind | 0);
+        this.idx = (idx | 0);
+    }
+
+    __onDel() {
+        this.faces_imgs_cache_stack = null, this.faces_imgs = null, this.faces = null, this.points = null, this.pivot = null, this.flag = null, this.data = null;
+        Polymesh.__meshes_del(this);
     }
 
     //% blockId=poly_dist_del
@@ -159,10 +396,8 @@ class polymesh {
     //% this.shadow=variables_get this.defl=myMesh
     //% group="Mesh util"
     //% weight=15
-    public del() {
-        this.__del = true;
-        this.faces = null, this.points = null, this.pivot = null;
-        this.rot = null, this.pos = null, this.flag = null;
+    del() {
+        super.del();
     }
 
     //% blockId=poly_dist_isdel
@@ -171,8 +406,8 @@ class polymesh {
     //% this.shadow=variables_get this.defl=myMesh
     //% group="Mesh util"
     //% weight=13
-    public isDel() {
-        return this.__del
+    isDel() {
+        return super.isDel();
     }
 
     //% blockId=poly_dist_zdist
@@ -181,8 +416,9 @@ class polymesh {
     //% this.shadow=variables_get this.defl=myMesh
     //% group="Mesh util"
     //% weight=7
-    public zDist() {
-        return Polymesh.meshDistZ(this) * Polymesh.XDIST
+    zDist() {
+        if (this.isDel()) return NaN
+        return Polymesh.meshDistZ(this) * Polymesh.NORMAL_DIST
     }
 
     //% blockId=poly_dist_zdepth
@@ -191,7 +427,8 @@ class polymesh {
     //% this.shadow=variables_get this.defl=myMesh
     //% group="Mesh util"
     //% weight=6
-    public zDepth() {
+    zDepth() {
+        if (this.isDel()) return NaN
         return Polymesh.meshDepthZ(this)
     }
 
@@ -201,10 +438,11 @@ class polymesh {
     //% this.shadow=variables_get this.defl=myMesh
     //% group="Mesh util"
     //% weight=8
-    public distFromCamera() {
-        const distPos = { x: Polymesh.camx - this.pos.x, y: Polymesh.camy - this.pos.y, z: Polymesh.camz - this.pos.z }
+    distFromCamera() {
+        if (this.isDel()) return NaN
+        const distPos = { x: Polymesh.camview.pos.x - this.pos.x, y: Polymesh.camview.pos.y - this.pos.y, z: Polymesh.camview.pos.z - this.pos.z }
         const distSum = (distPos.x * distPos.x) + (distPos.y * distPos.y) + (distPos.z * distPos.z)
-        return distSum * Polymesh.q_rsqrt(distSum)
+        return Math.sqrt(distSum)
     }
 
     //% blockId=poly_dist_othermesh
@@ -214,11 +452,12 @@ class polymesh {
     //% otherMesh.shadow=variables_get otherMesh.defl=otherMesh
     //% group="Mesh util"
     //% weight=9
-    public distBetween(otherMesh: polymesh) {
+    distBetween(otherMesh: polymesh) {
         if (otherMesh.isDel()) return NaN
+        if (this.isDel()) return NaN
         const distPos = { x: otherMesh.pos.x - this.pos.x, y: otherMesh.pos.y - this.pos.y, z: otherMesh.pos.z - this.pos.z }
         const distSum = (distPos.x * distPos.x) + (distPos.y * distPos.y) + (distPos.z * distPos.z)
-        return distSum * Polymesh.q_rsqrt(distSum)
+        return Math.sqrt(distSum)
     }
 
     //% blockId=poly_normal_speed
@@ -227,10 +466,11 @@ class polymesh {
     //% this.shadow=variables_get this.defl=myMesh
     //% group="Mesh util"
     //% weight=10
-    public normalSpeed() {
+    normalSpeed() {
+        if (this.isDel()) return NaN
         const distPosV = { vx: this.pos.vx, vy: this.pos.vy, vz: this.pos.vz }
         const distSum = (distPosV.vx * distPosV.vx) + (distPosV.vy * distPosV.vy) + (distPosV.vz * distPosV.vz)
-        return distSum * Polymesh.q_rsqrt(distSum)
+        return Math.sqrt(distSum)
     }
 
     //% blockId=poly_flag_set
@@ -239,11 +479,13 @@ class polymesh {
     //% this.shadow=variables_get this.defl=myMesh
     //% group="Flag mesh"
     //% weight=10
-    public setFlag(flag: MeshFlags, ok: boolean) {
+    setFlag(flag: MeshFlags, ok: boolean) {
+        if (this.isDel()) return
         switch (flag) {
-            case 0x0: default: this.flag.invisible = ok; break
-            case 0x1:          this.flag.noncull   = ok; break
-            case 0x2:          this.flag.lod       = ok; break
+            case 0x0: default: this.flag.invisible = ok; break;
+            case 0x1:          this.flag.cull   = ok; break;
+            case 0x2:          this.flag.texStream = ok; break;
+            case 0x3:          this.flag.lod       = ok; break;
         }
     }
 
@@ -253,11 +495,13 @@ class polymesh {
     //% this.shadow=variables_get this.defl=myMesh
     //% group="Flag mesh"
     //% weight=5
-    public getFlag(flag: MeshFlags) {
+    getFlag(flag: MeshFlags) {
+        if (this.isDel()) return null
         switch (flag) {
             case 0x0: default: return this.flag.invisible;
-            case 0x1:          return this.flag.noncull;
-            case 0x2:          return this.flag.lod;
+            case 0x1:          return this.flag.cull;
+            case 0x2:          return this.flag.texStream;
+            case 0x3:          return this.flag.lod;
         }
         return false
     }
@@ -269,9 +513,10 @@ class polymesh {
     //% this.shadow=variables_get this.defl=myMesh
     //% group="Mesh property"
     //% weight=10
-    public setVertice(idx: number, point3: Polymesh.shadowPoint3) {
+    setVertice(idx: number, point3: Polymesh.shadowPoint3) {
+        if (this.isDel()) return
         if (Polymesh.isOutOfRange(idx, this.points.length + 1)) return;
-        this.points_xs[idx] = Fx8(point3.x), this.points_ys[idx] = Fx8(point3.y), this.points_zs[idx] = Fx8(point3.z);// this.points[idx] = { x: point3.x, y: point3.y, z: point3.z }
+        this.points[idx] = { x: point3.x, y: point3.y, z: point3.z }
     }
 
     //% blockId=poly_vertice_add
@@ -281,8 +526,9 @@ class polymesh {
     //% this.shadow=variables_get this.defl=myMesh
     //% group="Mesh property"
     //% weight=9
-    public addVertice(point3: Polymesh.shadowPoint3) {
-        this.points_xs.push(Fx8(point3.x)), this.points_ys.push(Fx8(point3.y)), this.points_zs.push(Fx8(point3.z));// this.points.push({ x: point3.x, y: point3.y, z: point3.z })
+    addVertice(point3: Polymesh.shadowPoint3) {
+        if (this.isDel()) return
+        this.points.push({ x: point3.x, y: point3.y, z: point3.z })
     }
 
     //% blockId=poly_vertice_del
@@ -291,9 +537,10 @@ class polymesh {
     //% this.shadow=variables_get this.defl=myMesh
     //% group="Mesh remover"
     //% weight=10
-    public delVertice(idx?: number) {
-        if (idx) this.points_xs.removeAt(idx), this.points_ys.removeAt(idx), this.points_zs.removeAt(idx);// this.points.removeAt(idx);
-        else this.points_xs.pop(), this.points_ys.pop(), this.points_zs.pop();// this.points.pop();
+    delVertice(idx?: number) {
+        if (this.isDel()) return
+        if (idx) this.points.removeAt(idx);
+        else this.points.pop();
     }
 
     //% blockId=poly_face_set
@@ -303,22 +550,18 @@ class polymesh {
     //% this.shadow=variables_get this.defl=myMesh
     //% group="Mesh property"
     //% weight=8
-    public setFace(idx: number, c: number, inds: Polymesh.shadowIndices, clface?: Polymesh.shadowOffsetFace, billscale?: Polymesh.shadowBillSize, img?: Image) {
+    setFace(idx: number, c: number, inds: Polymesh.shadowIndices, clface?: Polymesh.shadowOffsetFace, billscale?: Polymesh.shadowBillSize, img?: Image) {
+        if (this.isDel()) return
         if (Polymesh.isOutOfRange(idx, this.faces.length + 1)) return;
         if (!billscale) billscale = new Polymesh.shadowBillSize(1)
         if (!clface) clface = new Polymesh.shadowOffsetFace(0)
-        const indice = [Fx8(inds.i1)]
-        if (inds.i2) indice.push(Fx8(inds.i2));
-        if (inds.i3) indice.push(Fx8(inds.i3));
-        if (inds.i4) indice.push(Fx8(inds.i4));
-        if (img) this.faces_indices[idx] = indice, this.faces_color[idx] = Fx8(c), this.faces_offset[idx] = Fx8(clface.oface), this.faces_scale[idx] = Fx8(billscale.scale), this.faces_img[idx] = img;
-        else this.faces_indices[idx] = indice, this.faces_color[idx] = Fx8(c), this.faces_offset[idx] = Fx8(clface.oface), this.faces_scale[idx] = Fx8(billscale.scale), this.faces_img[idx] = null;
-        // const indice = [inds.i1]
-        // if (inds.i2) indice.push(inds.i2);
-        // if (inds.i3) indice.push(inds.i3);
-        // if (inds.i4) indice.push(inds.i4);
-        // if (img) this.faces[idx] = { indices: indice, color: c, offset: clface.oface, scale: billscale.scale, img: img };
-        // else this.faces[idx] = { indices: indice, color: c, offset: clface.oface, scale: billscale.scale };
+        const indice = [inds.i1]
+        if (inds.i2) indice.push(inds.i2);
+        if (inds.i3) indice.push(inds.i3);
+        if (inds.i4) indice.push(inds.i4);
+        if (img) this.faces[idx] = { indices: indice, color: c, offset: clface.oface, scale: billscale.scale, img: img.clone() };
+        else this.faces[idx] = { indices: indice, color: c, offset: clface.oface, scale: billscale.scale, img: null }
+        this.updFaceImg(idx)
     }
 
     //% blockId=poly_face_add
@@ -329,21 +572,17 @@ class polymesh {
     //% this.shadow=variables_get this.defl=myMesh
     //% group="Mesh property"
     //% weight=7
-    public addFace(c: number, inds: Polymesh.shadowIndices, clface?: Polymesh.shadowOffsetFace, billscale?: Polymesh.shadowBillSize, img?: Image) {
+    addFace(c: number, inds: Polymesh.shadowIndices, clface?: Polymesh.shadowOffsetFace, billscale?: Polymesh.shadowBillSize, img?: Image) {
+        if (this.isDel()) return
         if (!billscale) billscale = new Polymesh.shadowBillSize(1)
         if (!clface) clface = new Polymesh.shadowOffsetFace(0)
-        const indice = [Fx8(inds.i1)]
-        if (inds.i2) indice.push(Fx8(inds.i2));
-        if (inds.i3) indice.push(Fx8(inds.i3));
-        if (inds.i4) indice.push(Fx8(inds.i4));
-        if (img) this.faces_indices.push(indice), this.faces_color.push(Fx8(c)), this.faces_offset.push(Fx8(clface.oface)), this.faces_scale.push(Fx8(billscale.scale)), this.faces_img.push(img);
-        else this.faces_indices.push(indice), this.faces_color.push(Fx8(c)), this.faces_offset.push(Fx8(clface.oface)), this.faces_scale.push(Fx8(billscale.scale)), this.faces_img.push(null);
-        // const indice = [inds.i1]
-        // if (inds.i2) indice.push(inds.i2);
-        // if (inds.i3) indice.push(inds.i3);
-        // if (inds.i4) indice.push(inds.i4);
-        // if (img) this.faces.push({ indices: indice, color: c, offset: clface.oface, scale: billscale.scale, img: img });
-        // else this.faces.push({ indices: indice, color: c, offset: clface.oface, scale: billscale.scale });
+        const indice = [inds.i1]
+        if (inds.i2) indice.push(inds.i2);
+        if (inds.i3) indice.push(inds.i3);
+        if (inds.i4) indice.push(inds.i4);
+        if (img) this.faces.push({ indices: indice, color: c, offset: clface.oface, scale: billscale.scale, img: img.clone() });
+        else this.faces.push({ indices: indice, color: c, offset: clface.oface, scale: billscale.scale, img: null });
+        this.updFaceImg(this.faces.length - 1)
     }
 
     //% blockId=poly_face_del
@@ -352,9 +591,10 @@ class polymesh {
     //% this.shadow=variables_get this.defl=myMesh
     //% group="Mesh remover"
     //% weight=9
-    public delFace(idx?: number) {
-        if (idx) this.faces_indices.removeAt(idx), this.faces_color.removeAt(idx), this.faces_offset.removeAt(idx), this.faces_scale.removeAt(idx), this.faces_img.removeAt(idx);// this.faces.removeAt(idx);
-        else this.faces_indices.pop(), this.faces_color.pop(), this.faces_offset.pop(), this.faces_scale.pop(), this.faces_img.pop();// this.faces.pop();
+    delFace(idx?: number) {
+        if (this.isDel()) return
+        if (idx) this.faces.removeAt(idx);
+        else this.faces.pop();
     }
 
     //% blockId=poly_getfacecolor
@@ -363,9 +603,10 @@ class polymesh {
     //% this.shadow=variables_get this.defl=myMesh
     //% group="Mesh face property"
     //% weight=10
-    public getFaceColor(idx: number) {
-        if (!this.faces_color[idx]) return NaN
-        return Fx.toInt(this.faces_color[idx])
+    getFaceColor(idx: number) {
+        if (this.isDel()) return NaN
+        if (!this.faces[idx].color) return NaN
+        return this.faces[idx].color
     }
 
     //% blockId=poly_setfacecolor
@@ -374,9 +615,10 @@ class polymesh {
     //% this.shadow=variables_get this.defl=myMesh
     //% group="Mesh face property"
     //% weight=9
-    public setFaceColor(idx: number, c: number) {
-        if (this.faces_color[idx] === Fx8(c)) return;
-        this.faces_color[idx] = Fx8(c)
+    setFaceColor(idx: number, c: number) {
+        if (this.isDel()) return
+        if (this.faces[idx].color === c) return;
+        this.faces[idx].color = c
     }
 
     //% blockId=poly_getfaceimage
@@ -385,21 +627,31 @@ class polymesh {
     //% this.shadow=variables_get this.defl=myMesh
     //% group="Mesh face property"
     //% weight=8
-    public getFaceImage(idx: number) {
-        // if (this.isDel()) return null
-        if (!this.faces_img[idx]) return null
-        return this.faces_img[idx]
+    getFaceImage(idx: number) {
+        if (this.isDel()) return null
+        if (!this.faces[idx].img) return null
+        return this.faces[idx].img
     }
 
     //% blockId=poly_setfaceimage
     //% blockNamespace=Polymesh
-    //% block=" $this set face image at $idx to $img=screen_image_picker"
+    //% block=" $this set face image at $idx to $img=image_picker|| and LOD as $imgs=lists_create_with"
+    //% imgs.defl=image_picker
     //% this.shadow=variables_get this.defl=myMesh
     //% group="Mesh face property"
     //% weight=7
-    public setFaceImage(idx: number, img: Image) {
-        if (this.faces_img[idx] && this.faces_img[idx].equals(img)) return;
-        this.faces_img[idx] = img
+    setFaceImage(idx: number, img: Image, imgs?: Image[]) {
+        if (this.isDel()) return
+        if (this.faces[idx].img && this.faces[idx].img.equals(img)) return;
+        this.faces[idx].img = img
+        if (imgs) {
+            const imgh = Polymesh.hashImage(img);
+            if (this.faces_imgs[idx][imgh]) return;
+            else this.faces_imgs[idx] = {};
+            this.faces_imgs[idx][imgh] = imgs.slice();
+            if (this.faces_imgs[idx][imgh][this.faces_imgs[idx][imgh].length - 1]) this.faces_imgs[idx][imgh][this.faces_imgs[idx][imgh].length - 1] = img.clone();
+            this.makeFaceImgStack(idx, img)
+        } else this.updFaceImg(idx)
     }
 
     //% blockId=poly_clearfaceimage
@@ -408,9 +660,11 @@ class polymesh {
     //% this.shadow=variables_get this.defl=myMesh
     //% group="Mesh face property"
     //% weight=6
-    public clearFaceImage(idx: number) {
-        if (!this.faces_img[idx]) return;
-        this.faces_img[idx] = null
+    clearFaceImage(idx: number) {
+        if (this.isDel()) return
+        if (!this.faces[idx].img) return;
+        this.faces[idx].img = null
+        this.resetFacesImgLODcache(idx);
     }
 
     //% blockId=poly_getfaceoffset
@@ -419,9 +673,10 @@ class polymesh {
     //% this.shadow=variables_get this.defl=myMesh
     //% group="Mesh face property"
     //% weight=5
-    public getFaceOffset(idx: number) {
-        if (!this.faces_offset[idx]) return NaN
-        return Fx.toFloat(this.faces_offset[idx])
+    getFaceOffset(idx: number) {
+        if (this.isDel()) return NaN
+        if (!this.faces[idx].offset) return NaN
+        return this.faces[idx].offset
     }
 
     //% blockId=poly_setfaceoffset
@@ -431,9 +686,10 @@ class polymesh {
     //% this.shadow=variables_get this.defl=myMesh
     //% group="Mesh face property"
     //% weight=4
-    public setFaceOffset(idx: number, oface: number) {
-        if (this.faces_offset[idx] === Fx8(oface)) return;
-        this.faces_offset[idx] = Fx8(oface)
+    setFaceOffset(idx: number, oface: number) {
+        if (this.isDel()) return
+        if (this.faces[idx].offset === oface) return;
+        this.faces[idx].offset = oface;
     }
 
     //% blockId=poly_getfacescale
@@ -442,9 +698,10 @@ class polymesh {
     //% this.shadow=variables_get this.defl=myMesh
     //% group="Mesh face property"
     //% weight=5
-    public getFaceScale(idx: number) {
-        if (!this.faces_scale[idx]) return NaN
-        return Fx.toFloat(this.faces_scale[idx])
+    getFaceScale(idx: number) {
+        if (this.isDel()) return NaN
+        if (!this.faces[idx].scale) return NaN;
+        return this.faces[idx].scale;
     }
 
     //% blockId=poly_setfacescale
@@ -454,9 +711,10 @@ class polymesh {
     //% this.shadow=variables_get this.defl=myMesh
     //% group="Mesh face property"
     //% weight=4
-    public setFaceScale(idx: number, scale: number) {
-        if (this.faces_scale[idx] === Fx8(scale)) return;
-        this.faces_scale[idx] = Fx8(scale)
+    setFaceScale(idx: number, scale: number) {
+        if (this.isDel()) return
+        if (this.faces[idx].scale === scale) return;
+        this.faces[idx].scale = scale;
     }
 
     //% blockId=poly_mesh_pivot_set
@@ -465,12 +723,13 @@ class polymesh {
     //% this.shadow=variables_get this.defl=myMesh
     //% group="Mesh pivot"
     //% weight=10
-    public setPivot(choice: PolyPivot, x: number) {
+    setPivot(choice: PolyPivot, x: number) {
+        if (this.isDel()) return
         switch (choice) {
-            case 0x0: if (this.pivot_x !== Fx8(x)) this.pivot_x = Fx8(x); break
-            case 0x1: if (this.pivot_y !== Fx8(x)) this.pivot_y = Fx8(x); break
-            case 0x2: if (this.pivot_z !== Fx8(x)) this.pivot_z = Fx8(x); break
-        }
+            case 0x0: if (this.pivot.x !== x) this.pivot.x = x; break;
+            case 0x1: if (this.pivot.y !== x) this.pivot.y = x; break;
+            case 0x2: if (this.pivot.z !== x) this.pivot.z = x; break;
+        };
     }
 
     //% blockId=poly_mesh_pivot_change
@@ -479,12 +738,13 @@ class polymesh {
     //% this.shadow=variables_get this.defl=myMesh
     //% group="Mesh pivot"
     //% weight=5
-    public changePivot(choice: PolyPivot, x: number) {
+    changePivot(choice: PolyPivot, x: number) {
+        if (this.isDel()) return
         switch (choice) {
-            case 0x0: if (this.pivot_x !== Fx.add(this.pivot_x, Fx8(x))) this.pivot_x = Fx.add(this.pivot_x, Fx8(x)); break
-            case 0x1: if (this.pivot_y !== Fx.add(this.pivot_y, Fx8(x))) this.pivot_y = Fx.add(this.pivot_y, Fx8(x)); break
-            case 0x2: if (this.pivot_z !== Fx.add(this.pivot_z, Fx8(x))) this.pivot_z = Fx.add(this.pivot_z, Fx8(x)); break
-        }
+            case 0x0: if (this.pivot.x !== (this.pivot.x + x)) this.pivot.x += x; break;
+            case 0x1: if (this.pivot.y !== (this.pivot.y + x)) this.pivot.y += x; break;
+            case 0x2: if (this.pivot.z !== (this.pivot.z + x)) this.pivot.z += x; break;
+        };
     }
 
     //% blockId=poly_mesh_pivot_get
@@ -493,12 +753,13 @@ class polymesh {
     //% this.shadow=variables_get this.defl=myMesh
     //% group="Mesh pivot"
     //% weight=4
-    public getPivot(choice: PolyPivot) {
+    getPivot(choice: PolyPivot) {
+        if (this.isDel()) return NaN
         switch (choice) {
-            case 0x0: return Fx.toFloat(this.pivot_x)
-            case 0x1: return Fx.toFloat(this.pivot_y)
-            case 0x2: return Fx.toFloat(this.pivot_z)
-        }
+            case 0x0: this.pivot.x;
+            case 0x1: this.pivot.y;
+            case 0x2: this.pivot.z;
+        };
         return NaN
     }
 
@@ -508,21 +769,8 @@ class polymesh {
     //% this.shadow=variables_get this.defl=myMesh
     //% group="Mesh angle"
     //% weight=100
-    public setAngle(choice: PolyAngle, x: number) {
-        switch (choice) {
-            case 0x0: if (this.rot_x  !== Fx8(x)) this.rot_x  = Fx8(x); break
-            case 0x1: if (this.rot_y  !== Fx8(x)) this.rot_y  = Fx8(x); break
-            case 0x2: if (this.rot_z  !== Fx8(x)) this.rot_z  = Fx8(x); break
-            case 0x3: if (this.rot_vx !== Fx8(x)) this.rot_vx = Fx8(x); break
-            case 0x4: if (this.rot_vy !== Fx8(x)) this.rot_vy = Fx8(x); break
-            case 0x5: if (this.rot_vz !== Fx8(x)) this.rot_vz = Fx8(x); break
-            case 0x6: if (this.rot_ax !== Fx8(x)) this.rot_ax = Fx8(x); break
-            case 0x7: if (this.rot_ay !== Fx8(x)) this.rot_ay = Fx8(x); break
-            case 0x8: if (this.rot_az !== Fx8(x)) this.rot_az = Fx8(x); break
-            case 0x9: if (this.rot_fx !== Fx8(x)) this.rot_fx = Fx8(x); break
-            case 0xA: if (this.rot_fy !== Fx8(x)) this.rot_fy = Fx8(x); break
-            case 0xB: if (this.rot_fz !== Fx8(x)) this.rot_fz = Fx8(x); break
-        }
+    setAngle(choice: PolyAngle, x: number) {
+        super.setAngle(choice, x)
     }
 
     //% blockId=poly_mesh_rot_change
@@ -531,21 +779,8 @@ class polymesh {
     //% this.shadow=variables_get this.defl=myMesh
     //% group="Mesh angle"
     //% weight=5
-    public changeAngle(choice: PolyAngle, x: number) {
-        switch (choice) {
-            case 0x0: if (this.rot_x  !== Fx.add(this.rot_x , Fx8(x))) this.rot_x  = Fx.add(this.rot_x , Fx8(x)); break
-            case 0x1: if (this.rot_y  !== Fx.add(this.rot_y , Fx8(x))) this.rot_y  = Fx.add(this.rot_y , Fx8(x)); break
-            case 0x2: if (this.rot_z  !== Fx.add(this.rot_z , Fx8(x))) this.rot_z  = Fx.add(this.rot_z , Fx8(x)); break
-            case 0x3: if (this.rot_vx !== Fx.add(this.rot_vx, Fx8(x))) this.rot_vx = Fx.add(this.rot_vx, Fx8(x)); break
-            case 0x4: if (this.rot_vy !== Fx.add(this.rot_vy, Fx8(x))) this.rot_vy = Fx.add(this.rot_vy, Fx8(x)); break
-            case 0x5: if (this.rot_vz !== Fx.add(this.rot_vz, Fx8(x))) this.rot_vz = Fx.add(this.rot_vz, Fx8(x)); break
-            case 0x6: if (this.rot_ax !== Fx.add(this.rot_ax, Fx8(x))) this.rot_ax = Fx.add(this.rot_ax, Fx8(x)); break
-            case 0x7: if (this.rot_ay !== Fx.add(this.rot_ay, Fx8(x))) this.rot_ay = Fx.add(this.rot_ay, Fx8(x)); break
-            case 0x8: if (this.rot_az !== Fx.add(this.rot_az, Fx8(x))) this.rot_az = Fx.add(this.rot_az, Fx8(x)); break
-            case 0x9: if (this.rot_fx !== Fx.add(this.rot_fx, Fx8(x))) this.rot_fx = Fx.add(this.rot_fx, Fx8(x)); break
-            case 0xA: if (this.rot_fy !== Fx.add(this.rot_fy, Fx8(x))) this.rot_fy = Fx.add(this.rot_fy, Fx8(x)); break
-            case 0xB: if (this.rot_fz !== Fx.add(this.rot_fz, Fx8(x))) this.rot_fz = Fx.add(this.rot_fz, Fx8(x)); break
-        }
+    changeAngle(choice: PolyAngle, x: number) {
+        super.changeAngle(choice, x)
     }
 
     //% blockId=poly_mesh_rot_get
@@ -554,22 +789,8 @@ class polymesh {
     //% this.shadow=variables_get this.defl=myMesh
     //% group="Mesh angle"
     //% weight=4
-    public getAngle(choice: PolyAngle) {
-        switch (choice) {
-            case 0x0: return Fx.toFloat(this.rot_x)
-            case 0x1: return Fx.toFloat(this.rot_y)
-            case 0x2: return Fx.toFloat(this.rot_z)
-            case 0x3: return Fx.toFloat(this.rot_vx)
-            case 0x4: return Fx.toFloat(this.rot_vy)
-            case 0x5: return Fx.toFloat(this.rot_vz)
-            case 0x6: return Fx.toFloat(this.rot_ax)
-            case 0x7: return Fx.toFloat(this.rot_ay)
-            case 0x8: return Fx.toFloat(this.rot_az)
-            case 0x9: return Fx.toFloat(this.rot_fx)
-            case 0xA: return Fx.toFloat(this.rot_fy)
-            case 0xB: return Fx.toFloat(this.rot_fz)
-        }
-        return NaN
+    getAngle(choice: PolyAngle) {
+        return super.getAngle(choice)
     }
 
     //% blockId=poly_mesh_pos_set
@@ -578,21 +799,8 @@ class polymesh {
     //% this.shadow=variables_get this.defl=myMesh
     //% group="Mesh position property"
     //% weight=10
-    public setPos(choice: PolyPos, x: number) {
-        switch (choice) {
-            case 0x0: if (this.pos_x  !== Fx8(x)) this.pos_x  = Fx8(x); break
-            case 0x1: if (this.pos_y  !== Fx8(x)) this.pos_y  = Fx8(x); break
-            case 0x2: if (this.pos_z  !== Fx8(x)) this.pos_z  = Fx8(x); break
-            case 0x3: if (this.pos_vx !== Fx8(x)) this.pos_vx = Fx8(x); break
-            case 0x4: if (this.pos_vy !== Fx8(x)) this.pos_vy = Fx8(x); break
-            case 0x5: if (this.pos_vz !== Fx8(x)) this.pos_vz = Fx8(x); break
-            case 0x6: if (this.pos_ax !== Fx8(x)) this.pos_ax = Fx8(x); break
-            case 0x7: if (this.pos_ay !== Fx8(x)) this.pos_ay = Fx8(x); break
-            case 0x8: if (this.pos_az !== Fx8(x)) this.pos_az = Fx8(x); break
-            case 0x9: if (this.pos_fx !== Fx8(x)) this.pos_fx = Fx8(x); break
-            case 0xA: if (this.pos_fy !== Fx8(x)) this.pos_fy = Fx8(x); break
-            case 0xB: if (this.pos_fz !== Fx8(x)) this.pos_fz = Fx8(x); break
-        }
+    setPos(choice: PolyPos, x: number) {
+        super.setPos(choice, x)
     }
 
     //% blockId=poly_mesh_pos_change
@@ -601,21 +809,8 @@ class polymesh {
     //% this.shadow=variables_get this.defl=myMesh
     //% group="Mesh position property"
     //% weight=9
-    public changePos(choice: PolyPos, x: number) {
-        switch (choice) {
-            case 0x0: if (this.pos_x  !== Fx.add(this.pos_x , Fx8(x))) this.pos_x  = Fx.add(this.pos_x , Fx8(x)); break
-            case 0x1: if (this.pos_y  !== Fx.add(this.pos_y , Fx8(x))) this.pos_y  = Fx.add(this.pos_y , Fx8(x)); break
-            case 0x2: if (this.pos_z  !== Fx.add(this.pos_z , Fx8(x))) this.pos_z  = Fx.add(this.pos_z , Fx8(x)); break
-            case 0x3: if (this.pos_vx !== Fx.add(this.pos_vx, Fx8(x))) this.pos_vx = Fx.add(this.pos_vx, Fx8(x)); break
-            case 0x4: if (this.pos_vy !== Fx.add(this.pos_vy, Fx8(x))) this.pos_vy = Fx.add(this.pos_vy, Fx8(x)); break
-            case 0x5: if (this.pos_vz !== Fx.add(this.pos_vz, Fx8(x))) this.pos_vz = Fx.add(this.pos_vz, Fx8(x)); break
-            case 0x6: if (this.pos_ax !== Fx.add(this.pos_ax, Fx8(x))) this.pos_ax = Fx.add(this.pos_ax, Fx8(x)); break
-            case 0x7: if (this.pos_ay !== Fx.add(this.pos_ay, Fx8(x))) this.pos_ay = Fx.add(this.pos_ay, Fx8(x)); break
-            case 0x8: if (this.pos_az !== Fx.add(this.pos_az, Fx8(x))) this.pos_az = Fx.add(this.pos_az, Fx8(x)); break
-            case 0x9: if (this.pos_fx !== Fx.add(this.pos_fx, Fx8(x))) this.pos_fx = Fx.add(this.pos_fx, Fx8(x)); break
-            case 0xA: if (this.pos_fy !== Fx.add(this.pos_fy, Fx8(x))) this.pos_fy = Fx.add(this.pos_fy, Fx8(x)); break
-            case 0xB: if (this.pos_fz !== Fx.add(this.pos_fz, Fx8(x))) this.pos_fz = Fx.add(this.pos_fz, Fx8(x)); break
-        }
+    changePos(choice: PolyPos, x: number) {
+        super.changePos(choice, x)
     }
 
     //% blockId=poly_mesh_pos_get
@@ -624,22 +819,8 @@ class polymesh {
     //% this.shadow=variables_get this.defl=myMesh
     //% group="Mesh position property"
     //% weight=8
-    public getPos(choice: PolyPos) {
-        switch (choice) {
-            case 0x0: return Fx.toFloat(this.pos_x)
-            case 0x1: return Fx.toFloat(this.pos_y)
-            case 0x2: return Fx.toFloat(this.pos_z)
-            case 0x3: return Fx.toFloat(this.pos_vx)
-            case 0x4: return Fx.toFloat(this.pos_vy)
-            case 0x5: return Fx.toFloat(this.pos_vz)
-            case 0x6: return Fx.toFloat(this.pos_ax)
-            case 0x7: return Fx.toFloat(this.pos_ay)
-            case 0x8: return Fx.toFloat(this.pos_az)
-            case 0x9: return Fx.toFloat(this.pos_fx)
-            case 0xA: return Fx.toFloat(this.pos_fy)
-            case 0xB: return Fx.toFloat(this.pos_fz)
-        }
-        return NaN
+    getPos(choice: PolyPos) {
+        return super.getPos(choice)
     }
 
 }

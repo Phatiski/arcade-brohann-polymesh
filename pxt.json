@@ -1,7 +1,7 @@
 {
-    "name": "arcade-brohann-polymesh",
-    "version": "2.2.2",
-    "description": "basic 3d render like polygon and mesh cradit:phattiku",
+    "name": "arcade-polymesh",
+    "version": "11.2.6",
+    "description": "basic 3d render like polygon and mesh",
     "dependencies": {
         "device": "*"
     },
@@ -14,7 +14,8 @@
         "sorting.ts",
         "me.ts",
         "myself.ts",
-        "module.ts",
+        "render.ts",
+        "kind.ts",
         "class.ts",
         "enum.ts",
         "shadow.ts"
@@ -23,7 +24,7 @@
         "test.ts"
     ],
     "targetVersions": {
-        "target": "2.0.59",
+        "target": "4.0.5",
         "targetId": "arcade"
     },
     "supportedTargets": [
